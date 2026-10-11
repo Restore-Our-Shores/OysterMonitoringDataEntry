@@ -6,6 +6,8 @@ source("R/validation.R", local = TRUE)
 source("R/storage.R", local = TRUE)
 source("R/mod_event.R", local = TRUE)
 source("R/mod_visual.R", local = TRUE)
+source("R/mod_measured.R", local = TRUE)
+source("R/mod_structural.R", local = TRUE)
 source("R/mod_review.R", local = TRUE)
 
 app_theme <- bs_theme(
@@ -46,8 +48,10 @@ ui <- page_navbar(
         div(
           class = "workflow",
           span(class = "workflow-step", tags$b("1"), "Event details"),
-          span(class = "workflow-step", tags$b("2"), "Add observations"),
-          span(class = "workflow-step", tags$b("3"), "Review & submit")
+          span(class = "workflow-step", tags$b("2"), "Visual survey"),
+          span(class = "workflow-step", tags$b("3"), "Measure oysters"),
+          span(class = "workflow-step", tags$b("4"), "Structure"),
+          span(class = "workflow-step", tags$b("5"), "Review & submit")
         )
       ),
       card(
@@ -72,8 +76,24 @@ ui <- page_navbar(
         card_header("2. Add an observation"),
         card_body(mod_visual_ui("visual"))
       ),
-      div(class = "page-actions", actionButton("go_review", "Review staged observations", class = "btn-primary btn-lg"))
+      div(class = "page-actions", actionButton("go_measured", "Continue to 50 measured oysters", class = "btn-primary btn-lg"))
     )
+  ),
+  nav_panel(
+    "50 Measured Oysters", value = "measured_oysters",
+    div(class = "container-xl py-4",
+      div(class = "page-heading", span("Step 3", class = "page-kicker"), h1("50 measured oysters"),
+        p("Record one complete set of 50 shell heights and the associated species observations for each sample.")),
+      card(class = "section-card", card_header("3. Add a measured-oyster sample"), card_body(mod_measured_ui("measured"))),
+      div(class = "page-actions", actionButton("go_structural", "Continue to structural monitoring", class = "btn-primary btn-lg")))
+  ),
+  nav_panel(
+    "Structural Monitoring", value = "structural_monitoring",
+    div(class = "container-xl py-4",
+      div(class = "page-heading", span("Step 4", class = "page-kicker"), h1("Structural monitoring"),
+        p("Select the structure type to display the correct depth positions. Bag and Gabion use the same fields.")),
+      card(class = "section-card", card_header("4. Add a structural observation"), card_body(mod_structural_ui("structural"))),
+      div(class = "page-actions", actionButton("go_review", "Review staged data", class = "btn-primary btn-lg")))
   ),
   nav_panel("Review & Submit", value = "review_submit", mod_review_ui("review")),
   nav_panel(
@@ -85,12 +105,13 @@ ui <- page_navbar(
         class = "section-card",
         card_header("First-draft scope"),
         card_body(
-          p("This prototype implements the visual survey from the BZ Oyster Monitoring workbook."),
+          p("This prototype implements the linked oyster reef monitoring workflows from the BZ Oyster Monitoring workbook."),
           tags$ul(
             tags$li("Shared event information is entered once per monitoring visit."),
             tags$li("Any number of module/transect observations can be staged before submission."),
             tags$li("Local CSV storage is used for development; Google Sheets is supported through configuration."),
-            tags$li("The detailed 50-oyster and structural protocols are planned as later modules.")
+            tags$li("Every measured-oyster sample requires exactly 50 shell heights in millimeters."),
+            tags$li("Corral depth fields differ from the shared Bag/Gabion form.")
           )
         )
       )
@@ -101,7 +122,9 @@ ui <- page_navbar(
 server <- function(input, output, session) {
   event <- mod_event_server("event")
   visual <- mod_visual_server("visual")
-  mod_review_server("review", event, visual$observations, visual$clear_all)
+  measured <- mod_measured_server("measured")
+  structural <- mod_structural_server("structural")
+  mod_review_server("review", event, visual, measured, structural)
 
   observeEvent(input$go_visual, {
     bslib::nav_select("main_nav", selected = "visual_survey", session = session)
@@ -109,6 +132,14 @@ server <- function(input, output, session) {
 
   observeEvent(input$go_review, {
     bslib::nav_select("main_nav", selected = "review_submit", session = session)
+  })
+
+  observeEvent(input$go_measured, {
+    bslib::nav_select("main_nav", selected = "measured_oysters", session = session)
+  })
+
+  observeEvent(input$go_structural, {
+    bslib::nav_select("main_nav", selected = "structural_monitoring", session = session)
   })
 }
 

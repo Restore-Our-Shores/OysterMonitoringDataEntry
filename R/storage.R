@@ -41,13 +41,19 @@ google_authenticate <- local({
   }
 })
 
-save_submission <- function(event, observations) {
-  stopifnot(nrow(event) == 1L, nrow(observations) > 0L)
+save_submission <- function(event, visual_observations = empty_observations(), oyster_samples = empty_oyster_samples(),
+                            oyster_measurements = empty_oyster_measurements(), species_observations = empty_species_observations(),
+                            structural_observations = empty_structural_observations()) {
+  datasets <- list(
+    visual_observations = visual_observations, oyster_samples = oyster_samples,
+    oyster_measurements = oyster_measurements, species_observations = species_observations,
+    structural_observations = structural_observations)
+  stopifnot(nrow(event) == 1L, sum(vapply(datasets[c("visual_observations", "oyster_samples", "structural_observations")], nrow, integer(1))) > 0L)
   backend <- storage_backend()
 
   if (identical(backend, "local")) {
     append_csv_rows(file.path("data", "events.csv"), event)
-    append_csv_rows(file.path("data", "visual_observations.csv"), observations)
+    for (name in names(datasets)) if (nrow(datasets[[name]])) append_csv_rows(file.path("data", paste0(name, ".csv")), datasets[[name]])
     return(invisible(list(backend = backend, event_id = event$event_id)))
   }
 
@@ -59,7 +65,11 @@ save_submission <- function(event, observations) {
   # Event status makes an interrupted multi-tab submission discoverable and recoverable.
   event$submission_status <- "pending"
   googlesheets4::sheet_append(sheet_id, event, sheet = "Events")
-  googlesheets4::sheet_append(sheet_id, observations, sheet = "Visual_Observations")
+  sheet_names <- c(
+    visual_observations = "Visual_Observations", oyster_samples = "Oyster_Samples",
+    oyster_measurements = "Oyster_Measurements", species_observations = "Species_Observations",
+    structural_observations = "Structural_Observations")
+  for (name in names(datasets)) if (nrow(datasets[[name]])) googlesheets4::sheet_append(sheet_id, datasets[[name]], sheet = sheet_names[[name]])
   event$submission_status <- "complete"
   googlesheets4::range_write(
     sheet_id,

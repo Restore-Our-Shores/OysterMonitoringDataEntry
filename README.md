@@ -4,7 +4,7 @@ First-draft R Shiny data-entry application for ECZF Restore Our Shores oyster re
 
 ## Current scope
 
-The prototype implements the **Visual (Edit)** protocol from `BZ Oyster Monitoring Sheets.xlsx`:
+The application implements the linked protocols from `BZ Oyster Monitoring Sheets.xlsx`:
 
 - Shared monitoring-event metadata
 - Repeatable module/transect observations
@@ -13,8 +13,10 @@ The prototype implements the **Visual (Edit)** protocol from `BZ Oyster Monitori
 - Visible-live-oyster counts and notes
 - Review, validation, and submission receipt
 - Stable event and observation UUIDs
-
-Detailed 50-oyster sampling and corral/bag/gabion structural monitoring are intentionally deferred to later modules.
+- Exactly 50 shell-height measurements per oyster sample, recorded in millimeters
+- Counts for Flatworms, Crown Conch, Oyster Drills, and live oysters impacted by boring sponge
+- Yes/No presence records for the remaining associated species
+- Structural monitoring with five Corral depth positions and a shared three-position Bag/Gabion form
 
 ## Run locally
 
@@ -28,6 +30,10 @@ Development submissions default to:
 
 - `data/events.csv`
 - `data/visual_observations.csv`
+- `data/oyster_samples.csv`
+- `data/oyster_measurements.csv`
+- `data/species_observations.csv`
+- `data/structural_observations.csv`
 
 These files are ignored by Git.
 
@@ -37,6 +43,10 @@ Create a Google spreadsheet containing tabs named exactly:
 
 - `Events`
 - `Visual_Observations`
+- `Oyster_Samples`
+- `Oyster_Measurements`
+- `Species_Observations`
+- `Structural_Observations`
 
 Share that spreadsheet with the Google service account. Configure these environment variables in the deployment platform:
 
@@ -63,4 +73,3 @@ The first row of each Google Sheet tab must match the columns produced by the ap
 ```powershell
 Rscript scripts/smoke_test.R
 ```
-
