@@ -48,8 +48,8 @@ ui <- page_navbar(
         div(
           class = "workflow",
           span(class = "workflow-step", tags$b("1"), "Event details"),
-          span(class = "workflow-step", tags$b("2"), "Visual survey"),
-          span(class = "workflow-step", tags$b("3"), "Measure oysters"),
+          span(class = "workflow-step", tags$b("2"), "Shell measurements"),
+          span(class = "workflow-step", tags$b("3"), "Visual survey"),
           span(class = "workflow-step", tags$b("4"), "Structure"),
           span(class = "workflow-step", tags$b("5"), "Review & submit")
         )
@@ -59,33 +59,33 @@ ui <- page_navbar(
         card_header("1. Event details"),
         card_body(
           mod_event_ui("event"),
-          div(class = "page-actions", actionButton("go_visual", "Continue to visual survey", class = "btn-primary btn-lg"))
+          div(class = "page-actions", actionButton("go_measured", "Continue to shell measurements", class = "btn-primary btn-lg"))
         )
       )
     )
+  ),
+  nav_panel(
+    "Shell Measurements", value = "measured_oysters",
+    div(class = "container-xl py-4",
+      div(class = "page-heading", span("Step 2", class = "page-kicker"), h1("Shell measurements"),
+        p("Record one complete set of 50 shell heights and the associated species observations for each sample.")),
+      card(class = "section-card", card_header("2. Add a shell-measurement sample"), card_body(mod_measured_ui("measured"))),
+      div(class = "page-actions", actionButton("go_visual", "Continue to visual survey", class = "btn-primary btn-lg")))
   ),
   nav_panel(
     "Visual Survey",
     value = "visual_survey",
     div(
       class = "container-xl py-4",
-      div(class = "page-heading", span("Step 2", class = "page-kicker"), h1("Visual survey observations"),
+      div(class = "page-heading", span("Step 3", class = "page-kicker"), h1("Visual survey observations"),
           p("Add one observation for each module and transect point. Event information remains attached automatically.")),
       card(
         class = "section-card",
-        card_header("2. Add an observation"),
+        card_header("3. Add an observation"),
         card_body(mod_visual_ui("visual"))
       ),
-      div(class = "page-actions", actionButton("go_measured", "Continue to 50 measured oysters", class = "btn-primary btn-lg"))
+      div(class = "page-actions", actionButton("go_structural", "Continue to structural monitoring", class = "btn-primary btn-lg"))
     )
-  ),
-  nav_panel(
-    "50 Measured Oysters", value = "measured_oysters",
-    div(class = "container-xl py-4",
-      div(class = "page-heading", span("Step 3", class = "page-kicker"), h1("50 measured oysters"),
-        p("Record one complete set of 50 shell heights and the associated species observations for each sample.")),
-      card(class = "section-card", card_header("3. Add a measured-oyster sample"), card_body(mod_measured_ui("measured"))),
-      div(class = "page-actions", actionButton("go_structural", "Continue to structural monitoring", class = "btn-primary btn-lg")))
   ),
   nav_panel(
     "Structural Monitoring", value = "structural_monitoring",

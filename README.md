@@ -13,7 +13,7 @@ The application implements the linked protocols from `BZ Oyster Monitoring Sheet
 - Visible-live-oyster counts and notes
 - Review, validation, and submission receipt
 - Stable event and observation UUIDs
-- Exactly 50 shell-height measurements per oyster sample, recorded in millimeters
+- A compact one-at-a-time Shell Measurements workflow requiring exactly 50 shell heights per sample, recorded in millimeters
 - Counts for Flatworms, Crown Conch, Oyster Drills, and live oysters impacted by boring sponge
 - Yes/No presence records for the remaining associated species
 - Structural monitoring with five Corral depth positions and a shared three-position Bag/Gabion form

@@ -4,7 +4,7 @@ mod_review_ui <- function(id) {
     h1("Review and submit"), p("Check the visit summary and all staged monitoring data before submission.", class = "lead"),
     uiOutput(ns("summary")),
     card(class = "section-card mt-3", card_header("Visual survey"), card_body(div(class = "table-wrap", tableOutput(ns("visual_table"))))),
-    card(class = "section-card mt-3", card_header("50 measured oysters"), card_body(div(class = "table-wrap", tableOutput(ns("samples_table"))))),
+    card(class = "section-card mt-3", card_header("Shell measurements"), card_body(div(class = "table-wrap", tableOutput(ns("samples_table"))))),
     card(class = "section-card mt-3", card_header("Structural monitoring"), card_body(div(class = "table-wrap", tableOutput(ns("structural_table"))))),
     uiOutput(ns("validation_messages")),
     div(class = "d-flex flex-wrap justify-content-between gap-2 mt-3",
@@ -19,7 +19,7 @@ mod_review_server <- function(id, event, visual, measured, structural) {
       layout_columns(col_widths = c(3, 3, 2, 2, 2),
         div(class = "metric", strong(if (is_blank(e$monitoring_date)) "—" else e$monitoring_date), "Date"),
         div(class = "metric", strong(if (is_blank(e$site)) "—" else e$site), "Site"),
-        div(class = "metric", strong(visual_rows), "Visual"), div(class = "metric", strong(sample_rows), "50-oyster samples"),
+        div(class = "metric", strong(visual_rows), "Visual"), div(class = "metric", strong(sample_rows), "Shell samples"),
         div(class = "metric", strong(structural_rows), "Structural"))
     })
     output$visual_table <- renderTable({
@@ -30,7 +30,7 @@ mod_review_server <- function(id, event, visual, measured, structural) {
     }, striped = TRUE, hover = TRUE, spacing = "s")
     output$samples_table <- renderTable({
       samples <- measured$samples()
-      if (!nrow(samples)) return(data.frame(Status = "No 50-oyster samples staged."))
+      if (!nrow(samples)) return(data.frame(Status = "No shell-measurement samples staged."))
       size_summary <- aggregate(shell_height_mm ~ sample_id, measured$measurements(), function(x) sprintf("%.1f–%.1f (mean %.1f)", min(x), max(x), mean(x)))
       merged <- merge(samples, size_summary, by = "sample_id", all.x = TRUE, sort = FALSE)
       data.frame(Module = merged$module_number, Transect = merged$transect_point, `Measurements (mm)` = merged$shell_height_mm,

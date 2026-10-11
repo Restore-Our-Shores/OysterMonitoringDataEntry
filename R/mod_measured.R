@@ -1,17 +1,20 @@
-shell_size_input <- function(ns, number) {
-  numericInput(ns(paste0("shell_", number)), paste("Oyster", number), value = NA, min = 0.1, step = 0.1)
-}
-
 mod_measured_ui <- function(id) {
   ns <- NS(id)
   tagList(
     layout_columns(col_widths = c(6, 6),
       textInput(ns("module_number"), span("Module number", class = "required-label")),
       selectInput(ns("transect_point"), span("Transect point", class = "required-label"), choices = c("Select…" = "", TRANSECT_POINTS))),
-    h5("Shell height (mm)"),
-    p("Enter exactly 50 shell measurements. All fields are required before the sample can be staged.", class = "help-note"),
+    h5("Shell measurements"),
+    p("Enter each shell height in millimeters and select Add measurement. Pressing Enter also adds the value.", class = "help-note"),
     uiOutput(ns("measurement_progress")),
-    div(class = "measurement-grid", lapply(seq_len(50), function(i) shell_size_input(ns, i))),
+    div(class = "shell-entry-row",
+      numericInput(ns("shell_height_mm"), "Next shell height (mm)", value = NA, min = 0.1, step = 0.1),
+      actionButton(ns("add_measurement"), "Add measurement", class = "btn-primary"),
+      actionButton(ns("undo_measurement"), "Undo last", class = "btn-outline-secondary"),
+      actionButton(ns("clear_measurements"), "Clear measurements", class = "btn-outline-danger")),
+    tags$script(HTML(sprintf("document.addEventListener('keydown', function(e) { if (e.target.id === '%s' && e.key === 'Enter') { e.preventDefault(); document.getElementById('%s').click(); } });", ns("shell_height_mm"), ns("add_measurement")))),
+    uiOutput(ns("measurement_message")),
+    div(class = "table-wrap shell-measurements-table", tableOutput(ns("measurements_table"))),
     hr(), h5("Sample totals and condition"),
     layout_columns(col_widths = 3,
       numericInput(ns("total_oysters"), "Total oysters (including the 50)", value = NA, min = 50, step = 1),
@@ -36,12 +39,28 @@ mod_measured_ui <- function(id) {
 mod_measured_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     samples <- reactiveVal(empty_oyster_samples()); measurements <- reactiveVal(empty_oyster_measurements()); species <- reactiveVal(empty_species_observations())
-    sizes <- reactive(vapply(seq_len(50), function(i) input[[paste0("shell_", i)]] %||% NA_real_, numeric(1)))
+    sizes <- reactiveVal(numeric())
     output$measurement_progress <- renderUI({
-      complete <- sum(!is.na(sizes()))
+      complete <- length(sizes())
       div(class = paste("alert py-2", if (complete == 50) "alert-success" else "alert-info"), strong("Completed: "), complete, " / 50")
     })
+    output$measurements_table <- renderTable({
+      values <- c(sizes(), rep(NA_real_, 50 - length(sizes())))
+      result <- as.data.frame(matrix(values, nrow = 5, ncol = 10, byrow = TRUE), check.names = FALSE)
+      names(result) <- as.character(seq_len(10))
+      result
+    }, rownames = FALSE, na = "—", striped = TRUE, bordered = TRUE, spacing = "s", digits = 1)
     output$staged_count <- renderText(sprintf("%d sample(s) staged", nrow(samples())))
+    observeEvent(input$add_measurement, {
+      value <- input$shell_height_mm
+      if (length(sizes()) >= 50L) { output$measurement_message <- renderUI(div(class = "alert alert-warning py-2", "All 50 measurements have already been entered.")); return() }
+      if (is.null(value) || is.na(value) || value <= 0) { output$measurement_message <- renderUI(div(class = "alert alert-danger py-2", "Enter a shell height greater than 0 mm.")); return() }
+      sizes(c(sizes(), value)); updateNumericInput(session, "shell_height_mm", value = NA); output$measurement_message <- renderUI(NULL)
+    })
+    observeEvent(input$undo_measurement, {
+      if (length(sizes())) sizes(head(sizes(), -1)); output$measurement_message <- renderUI(NULL)
+    })
+    observeEvent(input$clear_measurements, { sizes(numeric()); output$measurement_message <- renderUI(NULL) })
     current_sample <- reactive(list(
       sample_id = new_uuid(), module_number = trimws(input$module_number %||% ""), transect_point = input$transect_point %||% "",
       total_oysters = as.integer(input$total_oysters), mortality_boxes = as.integer(input$mortality_boxes),
@@ -50,7 +69,7 @@ mod_measured_server <- function(id) {
       fouling_load = input$fouling_load %||% "", notes = trimws(input$notes %||% "")))
     reset_form <- function() {
       updateTextInput(session, "module_number", value = ""); updateSelectInput(session, "transect_point", selected = "")
-      for (i in seq_len(50)) updateNumericInput(session, paste0("shell_", i), value = NA)
+      sizes(numeric()); updateNumericInput(session, "shell_height_mm", value = NA)
       for (id in c("total_oysters", "mortality_boxes", "oysters_through_unit", "bridging_within_unit", "volume_gallons", "anoxic_shell_percent")) updateNumericInput(session, id, value = NA)
       updateSelectInput(session, "fouling_load", selected = "")
       for (code in names(COUNT_SPECIES)) updateNumericInput(session, paste0("count_", code), value = 0)
