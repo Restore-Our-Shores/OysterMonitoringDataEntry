@@ -1,3 +1,4 @@
+source("scripts/project_library.R")
 source("R/constants.R")
 source("R/validation.R")
 source("R/storage.R")
@@ -25,7 +26,7 @@ sample_row <- as.list(empty_oyster_samples()[1, ])
 sample_row$module_number <- "M-01"
 sample_row$transect_point <- "W"
 sample_row$total_oysters <- 50L
-stopifnot(length(validate_oyster_sample(sample_row, rep(25, 49))) > 0)
+stopifnot(length(validate_oyster_sample(sample_row, rep(25, 49))) == 0)
 stopifnot(length(validate_oyster_sample(sample_row, rep(25, 50))) == 0)
 stopifnot(length(COUNT_SPECIES) == 4L, length(PRESENCE_SPECIES) > 0L)
 

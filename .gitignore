@@ -4,7 +4,14 @@
 .Ruserdata
 renv/library/
 data/*.csv
+data/submissions/
+data/exports/
+tmp/
+*.Rcheck/
+*.tar.gz
 !data/.gitkeep
 .env
 *.json
+!manifest.json
+!renv/settings.json
 

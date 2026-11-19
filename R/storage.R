@@ -1,82 +1,63 @@
-storage_backend <- function() {
-  backend <- tolower(Sys.getenv("STORAGE_BACKEND", "local"))
-  if (!backend %in% c("local", "google_sheets")) stop("STORAGE_BACKEND must be 'local' or 'google_sheets'.")
-  backend
+empty_event <- function() data.frame(
+  event_id = character(), monitoring_date = character(), monitoring_time = character(),
+  project = character(), site = character(), observers = character(), water_temperature_c = numeric(),
+  salinity_ppt = numeric(), event_notes = character(), protocol = character(), submitted_at = character(),
+  submission_status = character(), payload_hash = character(), stringsAsFactors = FALSE)
+
+#' Workbook and CSV export schemas
+#' @return A named list of zero-row data frames, in export column order.
+#' @export
+export_schema <- function() {
+  attach <- function(x) { x$event_id <- character(); x$submitted_at <- character(); x }
+  list(Events = empty_event(), Visual_Observations = attach(empty_observations()),
+    Oyster_Samples = attach(empty_oyster_samples()), Oyster_Measurements = attach(empty_oyster_measurements()),
+    Species_Observations = attach(empty_species_observations()), Structural_Observations = attach(empty_structural_observations()))
 }
 
-append_csv_rows <- function(path, rows) {
-  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
-  exists <- file.exists(path)
-  utils::write.table(
-    rows,
-    file = path,
-    sep = ",",
-    row.names = FALSE,
-    col.names = !exists,
-    append = exists,
-    qmethod = "double",
-    na = ""
-  )
+prepare_exports <- function(payload) {
+  expected <- c("event", "visual_observations", "oyster_samples", "oyster_measurements", "species_observations", "structural_observations")
+  if (!is.list(payload) || !identical(names(payload), expected)) stop("Invalid finalized event.")
+  tables <- payload
+  schema <- export_schema()
+  names(tables) <- names(schema)
+  validate_submission(tables)
+  tables$Events$submission_status <- "finalized"
+  tables$Events$payload_hash <- ""
+  for (name in names(tables)) {
+    if (!nrow(tables[[name]])) tables[[name]] <- schema[[name]]
+    if (!identical(names(tables[[name]]), names(schema[[name]]))) stop(paste("Invalid column order for", name))
+  }
+  tables$Events$payload_hash <- digest::digest(as.character(jsonlite::toJSON(tables,
+    dataframe = "rows", auto_unbox = TRUE, na = "null", null = "null", digits = NA)),
+    algo = "sha256", serialize = FALSE)
+  tables
 }
 
-google_authenticate <- local({
-  authenticated <- FALSE
-  function() {
-    if (authenticated) return(invisible(TRUE))
-    credentials_json <- Sys.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")
-    credentials_path <- Sys.getenv("GOOGLE_SERVICE_ACCOUNT_FILE", "")
+event_filename_prefix <- function(tables) {
+  event <- tables$Events
+  site <- gsub("[^A-Za-z0-9_-]+", "_", event$site)
+  site <- substr(site, 1L, 60L)
+  paste0(event$monitoring_date, "_", site, "_", event$event_id)
+}
 
-    if (nzchar(credentials_json)) {
-      tmp <- tempfile(fileext = ".json")
-      writeLines(credentials_json, tmp, useBytes = TRUE)
-      on.exit(unlink(tmp), add = TRUE)
-      googlesheets4::gs4_auth(path = tmp)
-    } else if (nzchar(credentials_path)) {
-      googlesheets4::gs4_auth(path = credentials_path)
-    } else {
-      stop("Google Sheets storage requires GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_SERVICE_ACCOUNT_FILE.")
-    }
-    authenticated <<- TRUE
-    invisible(TRUE)
+export_filename <- function(tables, name) {
+  stopifnot(name %in% names(export_schema()))
+  paste0(event_filename_prefix(tables), "_", tolower(name), ".csv")
+}
+
+workbook_filename <- function(tables) paste0(event_filename_prefix(tables), ".xlsx")
+
+write_event_workbook <- function(tables, path) {
+  schema <- export_schema()
+  if (!identical(names(tables), names(schema))) stop("The event workbook must contain all six standard sheets.")
+  for (name in names(schema)) {
+    if (!identical(names(tables[[name]]), names(schema[[name]]))) stop(paste("Invalid workbook columns for", name))
   }
-})
+  writexl::write_xlsx(tables, path = path, col_names = TRUE, format_headers = TRUE)
+  invisible(path)
+}
 
-save_submission <- function(event, visual_observations = empty_observations(), oyster_samples = empty_oyster_samples(),
-                            oyster_measurements = empty_oyster_measurements(), species_observations = empty_species_observations(),
-                            structural_observations = empty_structural_observations()) {
-  datasets <- list(
-    visual_observations = visual_observations, oyster_samples = oyster_samples,
-    oyster_measurements = oyster_measurements, species_observations = species_observations,
-    structural_observations = structural_observations)
-  stopifnot(nrow(event) == 1L, sum(vapply(datasets[c("visual_observations", "oyster_samples", "structural_observations")], nrow, integer(1))) > 0L)
-  backend <- storage_backend()
-
-  if (identical(backend, "local")) {
-    append_csv_rows(file.path("data", "events.csv"), event)
-    for (name in names(datasets)) if (nrow(datasets[[name]])) append_csv_rows(file.path("data", paste0(name, ".csv")), datasets[[name]])
-    return(invisible(list(backend = backend, event_id = event$event_id)))
-  }
-
-  if (!requireNamespace("googlesheets4", quietly = TRUE)) stop("The googlesheets4 package is required.")
-  sheet_id <- Sys.getenv("GOOGLE_SHEET_ID", "")
-  if (!nzchar(sheet_id)) stop("GOOGLE_SHEET_ID is required for Google Sheets storage.")
-  google_authenticate()
-
-  # Event status makes an interrupted multi-tab submission discoverable and recoverable.
-  event$submission_status <- "pending"
-  googlesheets4::sheet_append(sheet_id, event, sheet = "Events")
-  sheet_names <- c(
-    visual_observations = "Visual_Observations", oyster_samples = "Oyster_Samples",
-    oyster_measurements = "Oyster_Measurements", species_observations = "Species_Observations",
-    structural_observations = "Structural_Observations")
-  for (name in names(datasets)) if (nrow(datasets[[name]])) googlesheets4::sheet_append(sheet_id, datasets[[name]], sheet = sheet_names[[name]])
-  event$submission_status <- "complete"
-  googlesheets4::range_write(
-    sheet_id,
-    data = event,
-    sheet = "Events",
-    range = paste0("A", nrow(googlesheets4::read_sheet(sheet_id, sheet = "Events", col_types = "c")) + 1L),
-    col_names = FALSE
-  )
-  invisible(list(backend = backend, event_id = event$event_id))
+write_export_csv <- function(data, path) {
+  utils::write.csv(data, path, row.names = FALSE, na = "", fileEncoding = "UTF-8")
+  invisible(path)
 }

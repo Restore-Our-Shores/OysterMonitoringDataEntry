@@ -3,8 +3,8 @@ mod_structural_ui <- function(id) {
   tagList(
     layout_columns(col_widths = c(4, 4, 4),
       textInput(ns("module_number"), span("Module number", class = "required-label")),
-      selectInput(ns("transect_point"), span("Transect point", class = "required-label"), choices = c("Select…" = "", TRANSECT_POINTS)),
-      selectInput(ns("structure_type"), span("Structure type", class = "required-label"), choices = c("Select…" = "", STRUCTURE_TYPES))),
+      selectInput(ns("transect_point"), span("Transect point", class = "required-label"), choices = c("Select..." = "", TRANSECT_POINTS)),
+      selectInput(ns("structure_type"), span("Structure type", class = "required-label"), choices = c("Select..." = "", STRUCTURE_TYPES))),
     uiOutput(ns("depth_fields")), h5("Sediment accrual"),
     layout_columns(col_widths = c(4, 4, 4),
       numericInput(ns("sediment_waterward_cm"), "Waterward (cm)", value = NA, min = 0, step = .1),
@@ -13,7 +13,7 @@ mod_structural_ui <- function(id) {
     h5("Condition"),
     layout_columns(col_widths = c(4, 4, 4), checkboxInput(ns("damage_observed"), "Damage observed"),
       checkboxInput(ns("macroalgae_observed"), "Macroalgae observed"), checkboxInput(ns("materials_missing"), "Materials missing")),
-    textAreaInput(ns("notes"), "Structural notes", width = "100%", rows = 3, placeholder = "Describe damage, macroalgae, missing materials, or other conditions"),
+    textAreaInput(ns("notes"), notes_label("Structural notes"), width = "100%", rows = 3, placeholder = "Describe damage, macroalgae, missing materials, or other conditions"),
     uiOutput(ns("messages")),
     div(class = "d-flex justify-content-between align-items-center sticky-actions",
       span(textOutput(ns("staged_count"), inline = TRUE), class = "help-note"),
@@ -26,7 +26,7 @@ mod_structural_server <- function(id) {
     output$depth_fields <- renderUI({
       req(input$structure_type)
       if (identical(input$structure_type, "Corral")) {
-        tagList(h5("Depth — Corral positions"), p("Measure W, WS, TS, SS, and S as shown on the Corral topsheet.", class = "help-note"),
+        tagList(h5("Depth \u2014 Corral positions"), p("Measure W, WS, TS, SS, and S as shown on the Corral topsheet.", class = "help-note"),
           layout_columns(col_widths = c(2, 2, 3, 2, 3),
             numericInput(session$ns("depth_waterward_sediment_cm"), "W: waterward sediment (cm)", NA, min = 0, step = .1),
             numericInput(session$ns("depth_waterward_shell_cm"), "WS: waterward shell (cm)", NA, min = 0, step = .1),
@@ -34,7 +34,7 @@ mod_structural_server <- function(id) {
             numericInput(session$ns("depth_shoreward_shell_cm"), "SS: shoreward shell (cm)", NA, min = 0, step = .1),
             numericInput(session$ns("depth_shoreward_sediment_cm"), "S: shoreward sediment (cm)", NA, min = 0, step = .1)))
       } else {
-        tagList(h5("Depth — Bag/Gabion positions"), p("Bag and Gabion use the same Waterward, Top, and Shoreward fields.", class = "help-note"),
+        tagList(h5("Depth \u2014 Bag/Gabion positions"), p("Bag and Gabion use the same Waterward, Top, and Shoreward fields.", class = "help-note"),
           layout_columns(col_widths = c(4, 4, 4),
             numericInput(session$ns("depth_waterward_sediment_cm"), "Waterward (cm)", NA, min = 0, step = .1),
             numericInput(session$ns("depth_top_shell_cm"), "Top (cm)", NA, min = 0, step = .1),
@@ -67,6 +67,7 @@ mod_structural_server <- function(id) {
       showNotification("Structural observation added to the review queue.", type = "message"); reset_form()
     })
     clear_all <- function() observations(empty_structural_observations())
-    list(observations = reactive(observations()), clear_all = clear_all)
+    list(observations = reactive(observations()), clear_all = clear_all,
+      restore = function(rows) observations(rows))
   })
 }

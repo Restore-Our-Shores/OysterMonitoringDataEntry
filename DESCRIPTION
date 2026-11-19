@@ -1,0 +1,14 @@
+Package: rosoyster
+Title: Restore Our Shores Oyster Reef Monitoring
+Version: 0.4.1
+Authors@R: person("Restore Our Shores", role = c("aut", "cre"), email = "maintainer@example.org")
+Description: A modular Shiny application for oyster reef monitoring, with
+    validated field observations, review of finalized data, and one Excel workbook
+    per event with consistently named worksheets for each data type.
+License: file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: shiny (>= 1.8.1), bslib (>= 0.8.0), golem,
+    uuid, digest, jsonlite, stats, utils, pkgload, writexl
+Suggests: testthat (>= 3.2.0), pkgbuild, renv, rsconnect, withr, htmltools, attachment, readxl
+Config/testthat/edition: 3

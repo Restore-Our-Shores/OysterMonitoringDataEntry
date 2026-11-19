@@ -1,0 +1,10 @@
+source("scripts/project_library.R")
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+Sys.setenv(RENV_CONFIG_CACHE_ENABLED = "FALSE", RENV_PATHS_ROOT = file.path(getwd(), "renv", "local"))
+renv::settings$use.cache(FALSE)
+renv::settings$package.dependency.fields(c("Imports", "Depends", "LinkingTo"))
+renv::settings$snapshot.type("explicit")
+fields <- read.dcf("DESCRIPTION")[1, c("Imports", "Suggests")]
+packages <- trimws(gsub("\\s*\\([^)]*\\)", "", unlist(strsplit(paste(fields, collapse = ","), ","))))
+packages <- setdiff(packages, rownames(installed.packages(priority = "base")))
+renv::snapshot(packages = packages, prompt = FALSE)

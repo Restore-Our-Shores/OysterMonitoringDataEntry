@@ -1,5 +1,6 @@
 TRANSECT_POINTS <- c("Waterward" = "W", "Top" = "T", "Shoreward" = "S")
 REEF_TYPES <- c("Bag", "Gabion", "Corral", "Other")
+MODULE_TYPES <- c("bags", "gabion")
 STRUCTURE_TYPES <- c("Bag", "Gabion", "Corral")
 COVER_FIELDS <- c(
   live_oysters_count = "Live oysters",
@@ -29,6 +30,7 @@ empty_observations <- function() {
     visible_live_oysters_1 = integer(),
     visible_live_oysters_2 = integer(),
     notes = character(),
+    module_type = character(),
     stringsAsFactors = FALSE
   )
 }

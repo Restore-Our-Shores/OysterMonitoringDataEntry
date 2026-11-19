@@ -18,12 +18,13 @@ mod_visual_ui <- function(id) {
   ns <- NS(id)
   tagList(
     layout_columns(
-      col_widths = c(4, 4, 4),
+      col_widths = c(3, 3, 3, 3),
       textInput(ns("module_number"), span("Module number", class = "required-label")),
       selectInput(ns("transect_point"), span("Transect point", class = "required-label"),
-                  choices = c("Select…" = "", TRANSECT_POINTS)),
+                  choices = c("Select..." = "", TRANSECT_POINTS)),
       selectInput(ns("reef_type"), span("Reef type", class = "required-label"),
-                  choices = c("Select…" = "", REEF_TYPES))
+                  choices = c("Select..." = "", REEF_TYPES)),
+      selectInput(ns("module_type"), "Module type", choices = c("Select..." = "", MODULE_TYPES))
     ),
     h5("Quadrat cover counts", class = "mt-2"),
     p("Enter the number of intercept points, out of 50, assigned to each category.", class = "help-note"),
@@ -44,9 +45,9 @@ mod_visual_ui <- function(id) {
     ),
     layout_columns(
       col_widths = c(3, 3, 6),
-      numericInput(ns("visible_live_oysters_1"), "Visible live oysters — count 1", value = NA, min = 0, step = 1),
-      numericInput(ns("visible_live_oysters_2"), "Visible live oysters — count 2", value = NA, min = 0, step = 1),
-      textAreaInput(ns("notes"), "Observation notes", rows = 2, width = "100%")
+      numericInput(ns("visible_live_oysters_1"), "Visible live oysters \u2014 count 1", value = NA, min = 0, step = 1),
+      numericInput(ns("visible_live_oysters_2"), "Visible live oysters \u2014 count 2", value = NA, min = 0, step = 1),
+      textAreaInput(ns("notes"), notes_label("Observation notes"), rows = 2, width = "100%")
     ),
     uiOutput(ns("messages")),
     div(
@@ -68,20 +69,21 @@ mod_visual_server <- function(id) {
         module_number = trimws(input$module_number %||% ""),
         transect_point = input$transect_point %||% "",
         reef_type = input$reef_type %||% "",
-        live_oysters_count = as.integer(input$live_oysters_count),
-        sav_count = as.integer(input$sav_count),
-        fouling_count = as.integer(input$fouling_count),
-        substrate_count = as.integer(input$substrate_count),
-        sediment_count = as.integer(input$sediment_count),
-        depth_waterward_cm = input$depth_waterward_cm,
-        depth_top_cm = input$depth_top_cm,
-        depth_shoreward_cm = input$depth_shoreward_cm,
-        sediment_waterward_cm = input$sediment_waterward_cm,
-        sediment_top_cm = input$sediment_top_cm,
-        sediment_shoreward_cm = input$sediment_shoreward_cm,
-        visible_live_oysters_1 = as.integer(input$visible_live_oysters_1),
-        visible_live_oysters_2 = as.integer(input$visible_live_oysters_2),
+        live_oysters_count = input$live_oysters_count %||% NA_real_,
+        sav_count = input$sav_count %||% NA_real_,
+        fouling_count = input$fouling_count %||% NA_real_,
+        substrate_count = input$substrate_count %||% NA_real_,
+        sediment_count = input$sediment_count %||% NA_real_,
+        depth_waterward_cm = input$depth_waterward_cm %||% NA_real_,
+        depth_top_cm = input$depth_top_cm %||% NA_real_,
+        depth_shoreward_cm = input$depth_shoreward_cm %||% NA_real_,
+        sediment_waterward_cm = input$sediment_waterward_cm %||% NA_real_,
+        sediment_top_cm = input$sediment_top_cm %||% NA_real_,
+        sediment_shoreward_cm = input$sediment_shoreward_cm %||% NA_real_,
+        visible_live_oysters_1 = input$visible_live_oysters_1 %||% NA_real_,
+        visible_live_oysters_2 = input$visible_live_oysters_2 %||% NA_real_,
         notes = trimws(input$notes %||% ""),
+        module_type = input$module_type %||% "",
         stringsAsFactors = FALSE
       ))
     })
@@ -103,6 +105,7 @@ mod_visual_server <- function(id) {
       updateTextInput(session, "module_number", value = "")
       updateSelectInput(session, "transect_point", selected = "")
       updateSelectInput(session, "reef_type", selected = "")
+      updateSelectInput(session, "module_type", selected = "")
       for (id in names(COVER_FIELDS)) updateNumericInput(session, id, value = 0)
       for (id in c(
         "depth_waterward_cm", "depth_top_cm", "depth_shoreward_cm",
@@ -122,7 +125,7 @@ mod_visual_server <- function(id) {
         return()
       }
 
-      signature <- paste(unlist(obs), collapse = "|")
+      signature <- paste(unlist(obs[setdiff(names(obs), "observation_id")]), collapse = "|")
       if (length(result$warnings) && !identical(pending_warning_signature(), signature)) {
         pending_warning_signature(signature)
         output$messages <- renderUI(div(
@@ -139,6 +142,7 @@ mod_visual_server <- function(id) {
     })
 
     clear_all <- function() observations(empty_observations())
-    list(observations = reactive(observations()), clear_all = clear_all)
+    list(observations = reactive(observations()), clear_all = clear_all,
+      restore = function(rows) observations(rows))
   })
 }

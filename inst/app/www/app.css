@@ -1,4 +1,6 @@
 :root { --ros-blue:#035b7f; --ros-aqua:#1d90a5; --ros-lime:#a6be44; --ros-ink:#173743; }
+.notes-info { display:inline-flex; align-items:center; justify-content:center; width:1.1rem; height:1.1rem; border:1px solid currentColor; border-radius:50%; color:var(--ros-blue); font-size:.8rem; font-weight:700; cursor:help; }
+.notes-info:focus-visible { outline:2px solid var(--ros-blue); outline-offset:2px; }
 body { background:#f4f8fa; }
 .navbar { background:#fff !important; border-bottom:1px solid #d6e2e7 !important; box-shadow:0 2px 14px rgba(3,91,127,.08); }
 .navbar-brand { padding-top:.35rem; padding-bottom:.35rem; transform:translateY(5px); }

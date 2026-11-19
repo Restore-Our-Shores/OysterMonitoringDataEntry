@@ -1,75 +1,41 @@
 # Restore Our Shores — Oyster Reef Monitoring
 
-First-draft R Shiny data-entry application for ECZF Restore Our Shores oyster reef monitoring.
-
-## Current scope
-
-The application implements the linked protocols from `BZ Oyster Monitoring Sheets.xlsx`:
-
-- Shared monitoring-event metadata
-- Repeatable module/transect observations
-- Quadrat cover counts out of 50
-- Depth and sediment-accrual measurements
-- Visible-live-oyster counts and notes
-- Review, validation, and submission receipt
-- Stable event and observation UUIDs
-- A compact one-at-a-time Shell Measurements workflow requiring exactly 50 shell heights per sample, recorded in millimeters
-- Counts for Flatworms, Crown Conch, Oyster Drills, and live oysters impacted by boring sponge
-- Yes/No presence records for the remaining associated species
-- Structural monitoring with five Corral depth positions and a shared three-position Bag/Gabion form
+`rosoyster` is a golem/Shiny R package for field entry, review and Excel workbook download of oyster reef monitoring events. Version 0.4.1 uses a download-only workflow and requires no Google account, spreadsheet, credentials or storage backend.
 
 ## Run locally
 
-From the project directory:
+Use R 4.5.1 or a compatible newer R release. From the project directory:
 
 ```r
-shiny::runApp()
+install.packages("renv") # first setup only
+renv::restore()
+golem::run_dev()
 ```
 
-Development submissions default to:
+The standard development command uses `inst/golem-config.yml`. You can also run `source("dev/run_dev.R")` directly. An installed package can be launched with `rosoyster::run_app()`. The root `app.R` loads the package sources for deployment.
 
-- `data/events.csv`
-- `data/visual_observations.csv`
-- `data/oyster_samples.csv`
-- `data/oyster_measurements.csv`
-- `data/species_observations.csv`
-- `data/structural_observations.csv`
+## Review and download
 
-These files are ignored by Git.
+1. Enter event details and stage visual observations, shell samples and structural observations. Shell samples accept 1 to 50 measurements. Notes can be separated with semicolons.
+2. Open **Review & Download**. All six data types have full-data views, including every individual shell measurement and associated-species record.
+3. Select **Finalize event**. Validation runs and the event is frozen with a stable Event ID. Entered records remain visible.
+4. Select **Download event workbook (.xlsx)** to save one file containing all six data types. The filename includes the monitoring date, site and Event ID. Optional individual CSV downloads are in a collapsed section.
+5. Select **Return to editing** to revise the records, then finalize and download the revised workbook again. A revised finalization gets a new Event ID; repeated downloads of the same finalized event retain its ID and content.
 
-## Google Sheets configuration
+The six sheets are Events, Visual_Observations, Oyster_Samples, Oyster_Measurements, Species_Observations and Structural_Observations. Shared Event IDs and sample IDs link the sheets. Every workbook includes all six sheets, even when some have only headers. Column names start in row 1 and stay consistent for future database imports. `export_schema()` is the canonical schema.
 
-Create a Google spreadsheet containing tabs named exactly:
+**Save location:** **Choose save location** opens a Save As picker in supported desktop browsers over HTTPS or localhost. The workbook download button works through normal browser download controls in other browsers; configure the browser to ask where to save the file when needed. The app cannot choose a directory on a user's computer through a server-side path selector.
 
-- `Events`
-- `Visual_Observations`
-- `Oyster_Samples`
-- `Oyster_Measurements`
-- `Species_Observations`
-- `Structural_Observations`
+No finalized data is written to a database or permanent server file. Download the workbook before closing the application.
 
-Share that spreadsheet with the Google service account. Configure these environment variables in the deployment platform:
-
-```text
-STORAGE_BACKEND=google_sheets
-GOOGLE_SHEET_ID=<spreadsheet-id>
-GOOGLE_SERVICE_ACCOUNT_JSON=<complete service-account JSON document>
-```
-
-For local development, `GOOGLE_SERVICE_ACCOUNT_FILE` can instead point to a credential JSON file outside the repository. Never commit credential files.
-
-The first row of each Google Sheet tab must match the columns produced by the app. The simplest setup is to make a local test submission and use the resulting CSV headers when creating the tabs.
-
-## Connect Cloud deployment
-
-1. Commit the application to a GitHub repository.
-2. Create a Shiny deployment in Posit Connect Cloud.
-3. Add the three variables above as secret/environment variables.
-4. Deploy first against a test spreadsheet owned by the project.
-5. Verify one complete event before using the production spreadsheet.
+Draft and backup controls and browser draft persistence are currently disabled. Keep the workbook before closing or refreshing the app.
 
 ## Checks
 
 ```powershell
-Rscript scripts/smoke_test.R
+Rscript --vanilla scripts/check.R
+node --test tests/js/form-state.test.cjs tests/js/workbook-downloads.test.cjs
+Rscript --vanilla scripts/build_and_check.R
 ```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for deployment and browser save behavior, and [DEPLOYMENT_TEST_RESULTS.md](DEPLOYMENT_TEST_RESULTS.md) for acceptance results and repeatable browser tests.
